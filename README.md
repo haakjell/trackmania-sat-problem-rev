@@ -1,12 +1,18 @@
 # Trackmania SAT problem rev
 
 Reverse engineering the Trackmania map **"Password Please"** (by `orlp`) back
-into the CNF-SAT instance it secretly encodes. Still no luck actually solving
-it myself, but a nice exercise in Gbx-handling anyway. [Teggot solved it with
-CryptoMiniSat less than 24 hours after it was released](https://www.reddit.com/r/TrackMania/comments/1u4lw8t/getting_beaten_by_the_unbeaten_at_project/)
+into the CNF-SAT instance it secretly encodes. Though this project independently
+produced a solution, [Teggot solved it with CryptoMiniSat less than 24 hours after it was released](https://www.reddit.com/r/TrackMania/comments/1u4lw8t/getting_beaten_by_the_unbeaten_at_project/)
+
+To find the solution, the extracted `.cnf` is fed to CryptoMiniSat. This yields
+an assignment that the `check` command will verify if it covers all 4854
+checkpoint groups. The full L/R path is in `directions.txt`. Running
+CryptoMiniSat on 8 threads on my computer yielded a solution after approx 17
+minutes.
 
 Map on TMX: [Password Please](https://trackmania.exchange/mapshow/326842#!)  
-Reddit thread: [Beating the Unbeaten AT project ](https://www.reddit.com/r/TrackMania/comments/1u46lj7/beating_the_unbeaten_at_project/?sort=top)
+Inital reddit thread: [Beating the Unbeaten AT project ](https://www.reddit.com/r/TrackMania/comments/1u46lj7/beating_the_unbeaten_at_project/?sort=top)  
+Follow up thread: [Getting beaten by the Unbeaten AT project](https://www.reddit.com/r/TrackMania/comments/1u4lw8t/getting_beaten_by_the_unbeaten_at_project/)
 
 Huge thanks to BigBang1112 for providing
 [GBX.NET](https://github.com/BigBang1112/gbx-net) and
@@ -28,6 +34,7 @@ Every command needs the map passed with `-i`/`--input`:
 dotnet run metadata -i "../Password Please-no-validation-replay.Map.Gbx"  # map stats
 dotnet run probe    -i "../Password Please-no-validation-replay.Map.Gbx"  # tabulate decision points
 dotnet run extract  -i "../Password Please-no-validation-replay.Map.Gbx"  # emit cnf + variable-map.json
+dotnet run check    -i "../Password Please-no-validation-replay.Map.Gbx" -s ../solution  # verify solution
 ```
 
 `dotnet run extract` produces:
@@ -37,8 +44,13 @@ dotnet run extract  -i "../Password Please-no-validation-replay.Map.Gbx"  # emit
 | `password-please.cnf` | The SAT instance in DIMACS CNF: `p cnf 1165 4854` + one clause per line                        |
 | `variable-map.json`   | For each variable: its grid position and what `true`/`false` mean physically (left/right jump) |
 
-I can't really verify if this is correct other than taking random samples from
-the map and checking the program's output.
+`dotnet run check` reads a DIMACS solution file (lines starting with `v`),
+walks every decision point in track order, takes left or right according to the
+assignment, and collects the checkpoint groups reachable on that fork. It
+outputs the full list of captured groups and writes `directions.txt` with one
+line per column showing the L/R sequence. Running it against the CryptoMiniSat
+solution captures all 4854 groups, confirming the extraction and the solution
+are both correct.
 
 ## How the map encodes a SAT problem
 
@@ -195,9 +207,10 @@ decision point and split into North/South stacks by their Z relative to
 | `Geometry.cs` | The zig-zag scan: `Geometry.Scan(map)` yields one `DecisionPoint` per variable (col, row, varId, center, left/right order lists). |
 | `Probe.cs`    | `probe` — prints each `DecisionPoint` as a table row for visual verification                                                      |
 | `Extract.cs`  | `extract` — builds the clause dictionary and writes the CNF + variable map                                                        |
+| `Check.cs`    | `check` — reads a DIMACS solution, simulates the run, verifies all groups are captured, writes `directions.txt`                   |
 
-Both `probe` and `extract` consume `Geometry.Scan`, so they can never disagree
-about the track layout.
+`probe`, `extract`, and `check` all consume `Geometry.Scan`, so they can never
+disagree about the track layout.
 
 ### Output formats
 
@@ -227,7 +240,14 @@ p cnf 1165 4854
 
 ## Solving it
 
-The CNF is standard DIMACS, so any solver can read it.
+The CNF is standard DIMACS, so any solver can read it. Running CryptoMiniSat:
 
-If a solver were to produce an assignment, it can be mapped back to a set of
-"left or right" directions using `variable-map.json`.
+```
+cryptominisat5 --threads 8 password-please.cnf > output.txt
+```
+
+The resulting `solution` file will be very long, but at the end you will find
+your solution. Notable parts of this file can be found in the root of this repo
+as `output.txt`. The file can be checked with
+`dotnet run check -i <map> -s solution`, which confirms all 4854 checkpoint
+groups are captured. The full left/right path is written to `directions.txt`.
