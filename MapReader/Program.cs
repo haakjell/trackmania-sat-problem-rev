@@ -5,6 +5,7 @@ using GBX.NET.LZO;
 // Argument parsing: [subcommand] -i|--input <mapPath>  (input required)
 string subcommand = "probe";
 string? mapPath = null;
+string solutionPath = "solution";
 
 for (int a = 0; a < args.Length; a++)
 {
@@ -17,6 +18,14 @@ for (int a = 0; a < args.Length; a++)
                 return 1;
             }
             mapPath = args[++a];
+            break;
+        case "-s" or "--solution":
+            if (a + 1 >= args.Length)
+            {
+                Console.Error.WriteLine($"Missing path after {args[a]}");
+                return 1;
+            }
+            solutionPath = args[++a];
             break;
         default:
             subcommand = args[a];
@@ -47,15 +56,18 @@ try
         case "extract":
             Extract.Run(map);
             break;
+        case "check":
+            Check.Run(map, solutionPath);
+            break;
         default:
             Console.Error.WriteLine($"Unknown subcommand: {subcommand}");
-            Console.Error.WriteLine("Usage: MapReader [metadata|probe|extract] [-i|--input <map>]");
+            Console.Error.WriteLine("Usage: MapReader [metadata|probe|extract|check] [-i|--input <map>] [-s|--solution <path>]");
             return 1;
     }
 }
-catch (FileNotFoundException)
+catch (FileNotFoundException ex)
 {
-    Console.Error.WriteLine($"File not found: {mapPath}");
+    Console.Error.WriteLine($"File not found: {ex.FileName ?? ex.Message}");
     return 1;
 }
 catch (Exception ex)
