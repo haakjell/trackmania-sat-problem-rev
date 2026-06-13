@@ -2,10 +2,16 @@
 
 Reverse engineering the Trackmania map **"Password Please"** (by `orlp`) back
 into the CNF-SAT instance it secretly encodes. Still no luck actually solving
-it, but a nice exercise in Gbx-handling anyway.
+it myself, but a nice exercise in Gbx-handling anyway. [Teggot solved it with
+CryptoMiniSat less than 24 hours after it was released](https://www.reddit.com/r/TrackMania/comments/1u4lw8t/getting_beaten_by_the_unbeaten_at_project/)
 
-Huge thanks to BigBang1112 for providing the GBX.NET and GBX.NET.LZO libraries.
-As a .NET enjoyer, this project would not have been fun without these.
+Map on TMX: [Password Please](https://trackmania.exchange/mapshow/326842#!)  
+Reddit thread: [Beating the Unbeaten AT project ](https://www.reddit.com/r/TrackMania/comments/1u46lj7/beating_the_unbeaten_at_project/?sort=top)
+
+Huge thanks to BigBang1112 for providing
+[GBX.NET](https://github.com/BigBang1112/gbx-net) and
+[GBX.NET.LZO](https://github.com/BigBang1112/gbx-net). This project would not
+have been fun without these.
 
 The map is a giant logic puzzle: a boolean satisfiability problem with
 1165 variables and 4854 clauses. To "beat" the map you must drive a path
@@ -221,14 +227,7 @@ p cnf 1165 4854
 
 ## Solving it
 
-The CNF is standard DIMACS, so any solver can read it, but as expected its not
-able to reduce using Gaussian elimination. This makes it very unlikely to be
-able to find a solution in a reasonable amount of time. If anyone has a quantum
-computer to run this on, please let me know :)
+The CNF is standard DIMACS, so any solver can read it.
 
 If a solver were to produce an assignment, it can be mapped back to a set of
 "left or right" directions using `variable-map.json`.
-
-## If you got this far
-
-Please let me know if you have any ideas or things to try. I'd be glad to help.
